@@ -1,5 +1,5 @@
 ####### Dockerfile #######
-FROM rocker/tidyverse:4.2.0
+FROM rocker/tidyverse:4.2.2
 MAINTAINER Nikolaos Tourvas <nikostourvas@gmail.com>
 
 # Create directory for population genetics software on linux and use it as working dir
@@ -51,8 +51,8 @@ RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.s
 	&& chmod a+x bedtools
 
 # Install samtools
-RUN apt -qq update && apt -y install libncurses5-dev libbz2-dev liblzma-dev \
-	&& wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.16.tar.bz2 \
+RUN apt -qq update && apt -y install libncurses5-dev libbz2-dev bzip2 liblzma-dev
+RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.16.tar.bz2 \
 	&& tar -xvf samtools-1.16.tar.bz2 \
 	&& cd samtools-1.16/ \
 	&& ./configure \
