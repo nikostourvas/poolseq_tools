@@ -171,4 +171,6 @@ RUN rm -rf /tmp/*.rds \
 
 #------------------------------------------------------------------------------
 
-
+# Install GNU parallel
+RUN apt update \
+	&& apt -y install parallel
