@@ -10,8 +10,19 @@ WORKDIR /home/rstudio/software
 ARG TERM=linux
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install vim
-RUN apt update && apt -y install vim
+# Install ubuntu binaries
+RUN apt update && apt -y install \
+	vim \
+	tree \
+	parallel \
+	default-jre \
+	bwa \
+	trimmomatic \
+	fastqc \
+	multiqc \
+	seqtk \
+	picard-tools \
+	varscan
 	
 # Install TreeMix
 RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
@@ -22,38 +33,42 @@ RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
   	&& make install
 
 # Install FastQC
-RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
-	&& unzip fastqc_v0.11.9.zip \
-	&& cd FastQC/ \
-	&& chmod 755 fastqc \
-	&& ln -s /home/rstudio/software/fastqc_v0.11.9/FastQC/fastqc /usr/local/bin/fastqc
+#RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
+	#&& unzip fastqc_v0.11.9.zip && rm fastqc_v0.11.9.zip \
+	#&& cd FastQC/ \
+	#&& chmod 755 fastqc \
+	#&& ln -s /home/rstudio/software/fastqc_v0.11.9/FastQC/fastqc /usr/local/bin/fastqc
 
 # Install Trimmomatic
-RUN wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
-	&& unzip Trimmomatic-0.39.zip
+#RUN wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
+	#&& unzip Trimmomatic-0.39.zip \
+	#&& rm Trimmomatic-0.39.zip \
+	#&& cd Trimmomatic-0.39 \
+	#&& ln -s /home/rstudio/software/Trimmomatic-0.39/trimmomatic-0.39.jar /usr/share/trimmomatic-0.39.jar
 
 # Install flash
 RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
-	&& tar -xvf FLASH-1.2.11.tar.gz \
+	&& tar -xvf FLASH-1.2.11.tar.gz && rm FLASH-1.2.11.tar.gz \
 	&& cd FLASH-1.2.11 \
 	&& make \
 	&& ln -s /home/rstudio/software/FLASH-1.2.11/flash /usr/local/bin/flash
 	
 # Install bwa
-RUN git clone https://github.com/lh3/bwa.git \
-	&& cd bwa \
-	&& make \
-	&& ln -s /home/rstudio/software/bwa_repo/bwa/bwa /usr/local/bin/bwa
+#RUN git clone https://github.com/lh3/bwa.git \
+	#&& cd bwa \
+	#&& make \
+	#&& ln -s /home/rstudio/software/bwa_repo/bwa/bwa /usr/local/bin/bwa
 
 # Install bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
 	&& mv bedtools.static.binary bedtools \
-	&& chmod a+x bedtools
+	&& chmod a+x bedtools \
+	&& ln -s /home/rstudio/software/bedtools /usr/local/bin/bedtools
 
 # Install samtools
 RUN apt -qq update && apt -y install libncurses5-dev libbz2-dev bzip2 liblzma-dev
 RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.16.tar.bz2 \
-	&& tar -xvf samtools-1.16.tar.bz2 \
+	&& tar -xvf samtools-1.16.tar.bz2 && rm samtools-1.16.tar.bz2 \
 	&& cd samtools-1.16/ \
 	&& ./configure \
 	&& make \
@@ -61,7 +76,7 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.
 
 # Install BCFtools
 RUN wget https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 \
-	&& tar -xvf bcftools-1.16.tar.bz2 \
+	&& tar -xvf bcftools-1.16.tar.bz2 && rm bcftools-1.16.tar.bz2 \
 	&& cd bcftools-1.16/ \
 	&& ./configure \
 	&& make \
@@ -76,26 +91,29 @@ RUN wget https://github.com/freebayes/freebayes/releases/download/v1.3.6/freebay
 
 # Install vcftools
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz \
-	&& tar -xvf vcftools-0.1.16.tar.gz \
+	&& tar -xvf vcftools-0.1.16.tar.gz && rm vcftools-0.1.16.tar.gz \
 	&& cd vcftools-0.1.16/ \
 	&& ./configure \
 	&& make \
 	&& make install
 
 # Install varscan
-RUN wget https://sourceforge.net/projects/varscan/files/latest/download \
-	&& mv download VarScan.jar
+#RUN wget https://sourceforge.net/projects/varscan/files/latest/download \
+#	&& mv download VarScan.jar \
+	#&& ln -s /home/rstudio/software/VarScan.jar /usr/share/VarScan.jar
 
 # Install Popoolation2
-RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download -O popoolation2_1201.zip \
-	&& unzip popoolation2_1201.zip
+RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
+	-O popoolation2_1201.zip \
+	&& unzip popoolation2_1201.zip && rm popoolation2_1201.zip \
+	&& mv popoolation2_1201 /usr/share/
 
 # Install seqtk
-RUN apt update -qq \
- 	&& apt -y install zlib1g-dev \
-	&& git clone https://github.com/lh3/seqtk.git \
-	&& cd seqtk \
-	&& make
+#RUN apt update -qq \
+ 	#&& apt -y install zlib1g-dev \
+	#&& git clone https://github.com/lh3/seqtk.git \
+	#&& cd seqtk \
+	#&& make
 	#&& ln -s /programs/seqtk /usr/local/bin/seqtk
 
 # Install ea-utils
@@ -108,16 +126,14 @@ RUN apt update -qq \
 	#&& rm -rf ../../ea-utils/ #remove files - make admin happy
 
 # Install gatk
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.2.6.1/gatk-4.2.6.1.zip \
-	&& unzip gatk-4.2.6.1.zip \
-	&& rm gatk-4.2.6.1.zip #remove files - make admin happy
+#RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip \
+#	&& unzip gatk-4.3.0.0.zip \
+#	&& rm gatk-4.3.0.0.zip \
+#	&& mv gatk-4.3.0.0 /usr/share/
 
 # Install picard
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.1/picard.jar
-
-# Install varscan
-RUN wget https://sourceforge.net/projects/varscan/files/latest/download \
-	&& mv download VarScan.jar
+#RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.5/picard.jar \
+#	&& ln -s /home/rstudio/software/picard.jar /usr/share/picard.jar
 
 # Install R packages from Bioconductor
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree'))"
@@ -139,7 +155,7 @@ RUN install2.r --error \
   	ggpubr \ 
   	gridGraphics \
   	officer \
-  	flextable \	
+  	flextable \
   	eulerr \
   	gghalves \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
@@ -168,9 +184,4 @@ RUN rm -rf /tmp/*.rds \
 	OptM \
 	vcfR \
 && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
 #------------------------------------------------------------------------------
-
-# Install GNU parallel
-RUN apt update \
-	&& apt -y install parallel
