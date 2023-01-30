@@ -14,6 +14,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt -y install \
 	vim \
 	tree \
+	time \
 	parallel \
 	default-jre \
 	bwa \
@@ -58,6 +59,12 @@ RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
 	#&& cd bwa \
 	#&& make \
 	#&& ln -s /home/rstudio/software/bwa_repo/bwa/bwa /usr/local/bin/bwa
+
+# Install bwa-mem2
+# produces alignment identical to bwa and is ~1.3-3.1x faster depending on the use-case
+RUN curl -L https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.0pre2/bwa-mem2-2.0pre2_x64-linux.tar.bz2 \
+  | tar jxf - \
+	mv bwa-mem2-2.0pre2_x64-linux /usr/share/
 
 # Install bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
