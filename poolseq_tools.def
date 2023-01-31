@@ -1,0 +1,9 @@
+Bootstrap: docker 
+From: nikostourvas/poolseq_tools:0.1.8
+
+%environment
+    export LISTEN_PORT=12345 export LC_ALL=C
+
+%labels
+    Author Nikolaos Tourvas
+
