@@ -23,7 +23,8 @@ RUN apt update && apt -y install \
 	multiqc \
 	seqtk \
 	picard-tools \
-	varscan
+	varscan \
+	tabix
 	
 # Install TreeMix
 RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
