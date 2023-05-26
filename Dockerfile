@@ -21,8 +21,11 @@ RUN apt update && apt -y install \
 	trimmomatic \
 	fastqc \
 	seqtk \
-	picard-tools \
-	varscan
+	picard-tools
+
+# Install VarScan
+RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
+	&& mv VarScan.v2.4.6.jar /usr/share/java/varscan.jar
 
 # Install MultiQC
 RUN apt update && apt -y install python3-venv python3-pip \
