@@ -170,11 +170,14 @@ RUN install2.r --error \
   	ggmap \
   	ggsn \
   	splitstackshape \
-  	ggpubr \ 
   	gridGraphics \
+	gridExtra \
   	officer \
   	flextable \
   	eulerr \
+	car \
+	sjstats \
+	psych \
   	gghalves \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
@@ -203,3 +206,45 @@ RUN rm -rf /tmp/*.rds \
 	vcfR \
 && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 #------------------------------------------------------------------------------
+
+# Install EAA analysis software
+
+## depencencies
+RUN apt -y --no-install-recommends \
+	install gdal-bin proj-bin libgdal-dev libproj-dev  
+
+## R packages from CRAN
+RUN install2.r --error \
+        raster \
+        rgeos \
+        rgdal \
+        maps \
+        sf \
+        corrplot \
+        FactoMineR \
+        factoextra \
+        ggplot2 \
+        ggpubr \
+        lfmm \
+        plyr \
+        gdm \
+        foreach \
+        parallel \
+        doParallel \    
+        fields \
+        geosphere \
+        plotly \
+        manipulateWidget \
+  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+
+RUN install2.r --error \
+        gradientForest -r http://R-Forge.R-project.org \
+        extendedForest -r http://R-Forge.R-project.org \
+  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+## Install R packages from github
+RUN installGithub.r \
+  jiabowang/GAPIT3 \
+  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
