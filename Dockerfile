@@ -25,7 +25,8 @@ RUN apt update && apt -y install \
 	varscan
 
 # Install MultiQC
-RUN pip install multiqc
+RUN apt update && apt -y install python3-venv python3-pip \
+	&& pip3 install multiqc
 	
 # Install TreeMix
 RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
