@@ -1,5 +1,5 @@
 ####### Dockerfile #######
-FROM rocker/tidyverse:4.2.2
+FROM rocker/tidyverse:4.3.0
 MAINTAINER Nikolaos Tourvas <nikostourvas@gmail.com>
 
 # Create directory for population genetics software on linux and use it as working dir
@@ -20,11 +20,12 @@ RUN apt update && apt -y install \
 	bwa \
 	trimmomatic \
 	fastqc \
-	multiqc \
 	seqtk \
 	picard-tools \
-	varscan \
-	tabix
+	varscan
+
+# Install MultiQC
+RUN pip install multiqc
 	
 # Install TreeMix
 RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
@@ -86,6 +87,14 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.
 RUN wget https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 \
 	&& tar -xvf bcftools-1.16.tar.bz2 && rm bcftools-1.16.tar.bz2 \
 	&& cd bcftools-1.16/ \
+	&& ./configure \
+	&& make \
+	&& make install
+
+# Install htslib
+RUN wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 \
+	&& tar -xvf htslib-1.16.tar.bz2 && rm htslib-1.16.tar.bz2 \
+	&& cd htslib-1.16/ \
 	&& ./configure \
 	&& make \
 	&& make install
