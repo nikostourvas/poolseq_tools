@@ -17,6 +17,7 @@ RUN apt update && apt -y install \
 	time \
 	parallel \
 	default-jre \
+	build-essential cmake \
 	bwa \
 	trimmomatic \
 	fastqc \
@@ -68,6 +69,7 @@ RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
 
 # Install bwa-mem2
 # produces alignment identical to bwa and is ~1.3-3.1x faster depending on the use-case
+# Only available for certain CPU models
 RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.0pre2/bwa-mem2-2.0pre2_x64-linux.tar.bz2 \
 	&& tar -jxf bwa-mem2-2.0pre2_x64-linux.tar.bz2 \
 	&& mv bwa-mem2-2.0pre2_x64-linux /usr/share/
@@ -118,11 +120,6 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
 	&& make \
 	&& make install
 
-# Install varscan
-#RUN wget https://sourceforge.net/projects/varscan/files/latest/download \
-#	&& mv download VarScan.jar \
-	#&& ln -s /home/rstudio/software/VarScan.jar /usr/share/VarScan.jar
-
 # Install Popoolation2
 RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	-O popoolation2_1201.zip \
@@ -155,6 +152,15 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 # Install picard
 #RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.5/picard.jar \
 #	&& ln -s /home/rstudio/software/picard.jar /usr/share/picard.jar
+
+# Install bam-readcount
+RUN git clone https://github.com/genome/bam-readcount \
+	&& cd bam-readcount \
+	&& mkdir build \
+	&& cd build \
+	&& cmake .. \
+	&& make
+RUN ln -s /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
 
 # Install R packages from Bioconductor
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree'))"
@@ -244,10 +250,13 @@ RUN install2.r --error \
 RUN install2.r --error \
         gradientForest -r http://R-Forge.R-project.org \
         extendedForest -r http://R-Forge.R-project.org \
-  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 ## Install R packages from github
 RUN installGithub.r \
-  jiabowang/GAPIT3 \
-  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+  	jiabowang/GAPIT3 \
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
+# Clean up
+RUN apt clean all \
+&& rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && rm -rf /var/tmp/*
