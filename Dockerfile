@@ -17,12 +17,31 @@ RUN apt update && apt -y install \
 	time \
 	parallel \
 	default-jre \
-	build-essential cmake \
+	build-essential cmake autoconf automake \
+	zlib1g-dev libbz2-dev liblzma-dev libtinfo5 \
 	bwa \
 	trimmomatic \
 	fastqc \
 	seqtk \
-	picard-tools
+	picard-tools \
+	bamtools \
+	ea-utils \
+	seqtk
+
+# Install grenedalf
+RUN git clone --recursive https://github.com/lczech/grenedalf.git \
+	&& cd grenedalf \
+	&& make \
+	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
+
+# Install Baypass
+RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
+        && tar -zxvf baypass_2.4.tar.gz \
+        && cd baypass_2.4/sources \
+        && make clean all FC=gfortran \
+        && make clean \
+        && chmod +x g_baypass \
+        && mv /home/rstudio/software/baypass_2.4/sources/g_baypass /usr/bin/g_baypass
 
 # Install VarScan
 RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
@@ -78,7 +97,7 @@ RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.0pre2/bwa-mem
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
 	&& mv bedtools.static.binary bedtools \
 	&& chmod a+x bedtools \
-	&& ln -s /home/rstudio/software/bedtools /usr/local/bin/bedtools
+	&& mv /home/rstudio/software/bedtools /usr/local/bin/bedtools
 
 # Install samtools
 RUN apt -qq update && apt -y install libncurses5-dev libbz2-dev bzip2 liblzma-dev
@@ -109,8 +128,7 @@ RUN wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.t
 RUN wget https://github.com/freebayes/freebayes/releases/download/v1.3.6/freebayes-1.3.6-linux-amd64-static.gz \
 	&& gunzip freebayes-1.3.6-linux-amd64-static.gz \
 	&& chmod +x freebayes-1.3.6-linux-amd64-static \
-	&& mv freebayes-1.3.6-linux-amd64-static freebayes \
-	&& ln -s /home/rstudio/software/freebayes /usr/local/bin/freebayes
+	&& mv freebayes-1.3.6-linux-amd64-static /usr/local/bin/freebayes
 
 # Install vcftools
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz \
@@ -160,7 +178,7 @@ RUN git clone https://github.com/genome/bam-readcount \
 	&& cd build \
 	&& cmake .. \
 	&& make
-RUN ln -s /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
+RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
 
 # Install R packages from Bioconductor
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree'))"
@@ -219,7 +237,7 @@ RUN rm -rf /tmp/*.rds \
 # Install EAA analysis software
 
 ## depencencies
-RUN apt -y --no-install-recommends \
+RUN apt update && apt -y --no-install-recommends \
 	install gdal-bin proj-bin libgdal-dev libproj-dev  
 
 ## R packages from CRAN
@@ -232,7 +250,6 @@ RUN install2.r --error \
         corrplot \
         FactoMineR \
         factoextra \
-        ggplot2 \
         ggpubr \
         lfmm \
         plyr \
@@ -253,6 +270,11 @@ RUN install2.r --error \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 ## Install R packages from github
+### GAPIT3 needs LDheatmap, but LDheatmap is no longer in CRAN. So install it
+RUN R -e "BiocManager::install(c('snpStats','rtracklayer','GenomicRanges','GenomInfoDb','IRanges'))"
+RUN installGithub.r \
+	SFUStatgen/LDheatmap
+
 RUN installGithub.r \
   	jiabowang/GAPIT3 \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
