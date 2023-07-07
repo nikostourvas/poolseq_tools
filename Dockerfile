@@ -26,7 +26,8 @@ RUN apt update && apt -y install \
 	picard-tools \
 	bamtools \
 	ea-utils \
-	seqtk
+	seqtk \
+	plink plink1.9 plink2
 
 # Install grenedalf
 RUN git clone --recursive https://github.com/lczech/grenedalf.git \
@@ -162,6 +163,9 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	#&& rm -rf ../../ea-utils/ #remove files - make admin happy
 
 # Install gatk
+# Code left for legacy reasons
+# No need to install it, as broadinstitute provides a dedicated container for gatk
+# https://hub.docker.com/r/broadinstitute/gatk
 #RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip \
 #	&& unzip gatk-4.3.0.0.zip \
 #	&& rm gatk-4.3.0.0.zip \
