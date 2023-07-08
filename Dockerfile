@@ -182,8 +182,8 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 #	&& mv gatk-4.3.0.0 /usr/share/
 
 # Install picard
-RUN wget https://github.com/broadinstitute/picard/releases/download/3.0.0/picard.jar \
-	&& ln -s /home/rstudio/software/picard.jar /usr/share/java/picard.jar
+#RUN wget https://github.com/broadinstitute/picard/releases/download/3.0.0/picard.jar \
+#	&& mv /home/rstudio/software/picard.jar /usr/share/java/picard.jar
 
 # Install bam-readcount
 RUN git clone https://github.com/genome/bam-readcount \
