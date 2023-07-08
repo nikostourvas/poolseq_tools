@@ -36,13 +36,14 @@ RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
 
 # Install Baypass
-RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
-        && tar -zxvf baypass_2.4.tar.gz \
-        && cd baypass_2.4/sources \
+#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
+#        && tar -zxvf baypass_2.4.tar.gz \
+RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
+        && cd baypass_public/sources \
         && make clean all FC=gfortran \
         && make clean \
         && chmod +x g_baypass \
-        && mv /home/rstudio/software/baypass_2.4/sources/g_baypass /usr/bin/g_baypass
+        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
 
 # Install VarScan
 RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
