@@ -61,6 +61,8 @@ RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
   	&& make install
 
 # Install FastQC
+# No need to install this way as latest version is quite old, and it is already packaged
+# by Ubuntu maintainers
 #RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
 	#&& unzip fastqc_v0.11.9.zip && rm fastqc_v0.11.9.zip \
 	#&& cd FastQC/ \
@@ -68,6 +70,8 @@ RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
 	#&& ln -s /home/rstudio/software/fastqc_v0.11.9/FastQC/fastqc /usr/local/bin/fastqc
 
 # Install Trimmomatic
+# No need to install this way as latest version is quite old, and it is already packaged
+# by Ubuntu maintainers
 #RUN wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
 	#&& unzip Trimmomatic-0.39.zip \
 	#&& rm Trimmomatic-0.39.zip \
@@ -82,6 +86,8 @@ RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
 	&& ln -s /home/rstudio/software/FLASH-1.2.11/flash /usr/local/bin/flash
 	
 # Install bwa
+# No need to install this way as bwa latest version is quite old, and it is already packaged
+# by Ubuntu maintainers
 #RUN git clone https://github.com/lh3/bwa.git \
 	#&& cd bwa \
 	#&& make \
@@ -146,6 +152,8 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	&& mv popoolation2_1201 /usr/share/
 
 # Install seqtk
+# No need to install this way as latest version is quite old, and it is already packaged
+# by Ubuntu maintainers
 #RUN apt update -qq \
  	#&& apt -y install zlib1g-dev \
 	#&& git clone https://github.com/lh3/seqtk.git \
@@ -154,6 +162,8 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	#&& ln -s /programs/seqtk /usr/local/bin/seqtk
 
 # Install ea-utils
+# No need to install this way as latest version is quite old, and it is already packaged
+# by Ubuntu maintainers
 #RUN apt update -qq \
 	#&& apt -y install libgsl0-dev zlib1g-dev build-essential \
 	#&& git clone https://github.com/ExpressionAnalysis/ea-utils.git \
@@ -172,8 +182,8 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 #	&& mv gatk-4.3.0.0 /usr/share/
 
 # Install picard
-#RUN wget https://github.com/broadinstitute/picard/releases/download/2.27.5/picard.jar \
-#	&& ln -s /home/rstudio/software/picard.jar /usr/share/picard.jar
+RUN wget https://github.com/broadinstitute/picard/releases/download/3.0.0/picard.jar \
+	&& ln -s /home/rstudio/software/picard.jar /usr/share/java/picard.jar
 
 # Install bam-readcount
 RUN git clone https://github.com/genome/bam-readcount \
@@ -183,6 +193,29 @@ RUN git clone https://github.com/genome/bam-readcount \
 	&& cmake .. \
 	&& make
 RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
+
+# Install Bayescan
+RUN mkdir /home/rstudio/software/bayescan \
+  && cd /home/rstudio/software/bayescan \
+  && wget http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip \
+  && unzip BayeScan2.1.zip \
+  && rm -rf BayeScan2.1.zip \
+  && cp /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
+  /usr/local/bin/bayescan
+
+# Install pixy
+# make sure to have pip installed previously
+RUN wget -qO- "https://github.com/ksamuk/pixy/archive/refs/tags/1.2.7.beta1.tar.gz" | tar -zx
+RUN pip install pixy-1.2.7.beta1/
+
+# Install python 2 for legacy scripts
+RUN apt update && apt -y install python2
+
+# Install msmc2
+RUN apt update && apt -y install libgsl-dev libgsl27 libgslcblas0 libgsl-dbg
+RUN wget https://github.com/stschiff/msmc2/releases/download/v2.1.4/msmc2_Linux \
+        && chmod +x msmc2_Linux \
+        && mv /home/rstudio/software/msmc2_Linux /usr/local/bin/msmc2
 
 # Install R packages from Bioconductor
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree'))"
@@ -242,7 +275,7 @@ RUN rm -rf /tmp/*.rds \
 
 ## depencencies
 RUN apt update && apt -y --no-install-recommends \
-	install gdal-bin proj-bin libgdal-dev libproj-dev  
+	install gdal-bin proj-bin libgdal-dev libproj-dev 
 
 ## R packages from CRAN
 RUN install2.r --error \
