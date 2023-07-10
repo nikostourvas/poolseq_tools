@@ -1,6 +1,6 @@
 ####### Dockerfile #######
 FROM rocker/tidyverse:4.3.0
-MAINTAINER Nikolaos Tourvas <nikostourvas@gmail.com>
+LABEL maintainer="nikostourvas@gmail.com"
 
 # Create directory for population genetics software on linux and use it as working dir
 RUN mkdir /home/rstudio/software
@@ -17,6 +17,7 @@ RUN apt update && apt -y install \
 	time \
 	parallel \
 	default-jre \
+	golang-github-rivo-tview-dev \
 	build-essential cmake autoconf automake \
 	zlib1g-dev libbz2-dev liblzma-dev libtinfo5 \
 	bwa \
