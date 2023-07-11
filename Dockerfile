@@ -17,7 +17,6 @@ RUN apt update && apt -y install \
 	time \
 	parallel \
 	default-jre \
-	golang-github-rivo-tview-dev \
 	build-essential cmake autoconf automake \
 	zlib1g-dev libbz2-dev liblzma-dev libtinfo5 \
 	bwa \
