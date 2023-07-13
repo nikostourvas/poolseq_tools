@@ -97,9 +97,9 @@ RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
 # Install bwa-mem2
 # produces alignment identical to bwa and is ~1.3-3.1x faster depending on the use-case
 # Only available for certain CPU models
-RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.0pre2/bwa-mem2-2.0pre2_x64-linux.tar.bz2 \
-	&& tar -jxf bwa-mem2-2.0pre2_x64-linux.tar.bz2 \
-	&& mv bwa-mem2-2.0pre2_x64-linux /usr/share/
+RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2/bwa-mem2-2.2_x64-linux.tar.bz2 \
+	&& tar -jxf bwa-mem2-2.2_x64-linux.tar.bz2 \
+	&& mv bwa-mem2-2.2_x64-linux /usr/local/bin/bwa-mem2
 
 # Install bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
