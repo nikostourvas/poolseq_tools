@@ -97,9 +97,9 @@ RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
 # Install bwa-mem2
 # produces alignment identical to bwa and is ~1.3-3.1x faster depending on the use-case
 # Only available for certain CPU models
-RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2/bwa-mem2-2.2_x64-linux.tar.bz2 \
-	&& tar -jxf bwa-mem2-2.2_x64-linux.tar.bz2 \
-	&& mv bwa-mem2-2.2_x64-linux /usr/local/bin/bwa-mem2
+RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+	&& tar -jxf bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+	&& mv bwa-mem2-2.2.1_x64-linux /usr/local/bin/bwa-mem2
 
 # Install bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
@@ -245,6 +245,8 @@ RUN install2.r --error \
 	sjstats \
 	psych \
   	gghalves \	
+	adegenet \
+	poolHelper \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # The following section is copied from hlapp/rpopgen Dockerfile
@@ -304,7 +306,6 @@ RUN install2.r --error \
         manipulateWidget \
   && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
-
 RUN install2.r --error \
         gradientForest -r http://R-Forge.R-project.org \
         extendedForest -r http://R-Forge.R-project.org \
@@ -319,6 +320,20 @@ RUN installGithub.r \
 RUN installGithub.r \
   	jiabowang/GAPIT3 \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+RUN installGithub.r \
+	joao-mcarvalho/poolABC \
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+	
+# Install DIYABC RF (pending install of diyabcGUI R package)
+RUN pip3 install pyabcranger
+
+RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
+	&& cd diyabc \
+	&& mkdir build \
+	&& cd build \
+	&& cmake ../ \
+	&& cmake --build . --config Release
 
 # Clean up
 RUN apt clean all \
