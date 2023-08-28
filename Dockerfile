@@ -197,12 +197,12 @@ RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam
 
 # Install Bayescan
 RUN mkdir /home/rstudio/software/bayescan \
-  && cd /home/rstudio/software/bayescan \
-  && wget http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip \
-  && unzip BayeScan2.1.zip \
-  && rm -rf BayeScan2.1.zip \
-  && chmod +rwx /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-  && mv /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
+	&& cd /home/rstudio/software/bayescan \
+	&& wget http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip \
+	&& unzip BayeScan2.1.zip \
+	&& rm -rf BayeScan2.1.zip \
+	&& chmod +rwx /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
+	&& mv /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
   /usr/local/bin/bayescan
 
 # Install pixy
@@ -334,6 +334,18 @@ RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
 	&& cd build \
 	&& cmake ../ \
 	&& cmake --build . --config Release
+
+# Install additional utilities
+RUN apt update && apt -y install \
+	nano less
+
+# Install mosdepth
+RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
+	&& chmod a+x mosdepth \
+	&& mv /home/rstudio/software/mosdepth /usr/local/bin/mosdepth
+
+RUN wget https://github.com/brentp/mosdepth/blob/master/scripts/plot-dist.py \
+	&& mv /home/rstudio/software/plot-dist.py /usr/local/bin/plot-dist.py
 
 # Clean up
 RUN apt clean all \
