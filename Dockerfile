@@ -344,7 +344,7 @@ RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
 	&& chmod a+x mosdepth \
 	&& mv /home/rstudio/software/mosdepth /usr/local/bin/mosdepth
 
-RUN wget https://github.com/brentp/mosdepth/blob/master/scripts/plot-dist.py \
+RUN wget https://raw.githubusercontent.com/brentp/mosdepth/master/scripts/plot-dist.py \
 	&& chmod a+x plot-dist.py \
 	&& mv /home/rstudio/software/plot-dist.py /usr/local/bin/plot-dist.py
 
