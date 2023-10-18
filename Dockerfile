@@ -29,12 +29,6 @@ RUN apt update && apt -y install \
 	seqtk \
 	plink plink1.9 plink2
 
-# Install grenedalf
-RUN git clone --recursive https://github.com/lczech/grenedalf.git \
-	&& cd grenedalf \
-	&& make \
-	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
-
 # Install Baypass
 #RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
 #        && tar -zxvf baypass_2.4.tar.gz \
@@ -347,6 +341,12 @@ RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
 RUN wget https://raw.githubusercontent.com/brentp/mosdepth/master/scripts/plot-dist.py \
 	&& chmod a+x plot-dist.py \
 	&& mv /home/rstudio/software/plot-dist.py /usr/local/bin/plot-dist.py
+
+# Install grenedalf
+RUN git clone --recursive https://github.com/lczech/grenedalf.git \
+	&& cd grenedalf \
+	&& make \
+	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
 
 # Clean up
 RUN apt clean all \
