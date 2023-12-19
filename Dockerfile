@@ -348,6 +348,48 @@ RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& make \
 	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
 
+# Install vcflib
+RUN apt update && apt -y install libvcflib-tools libvcflib-dev
+
+# Install minimap2
+RUN wget https://github.com/lh3/minimap2/releases/download/v2.26/minimap2-2.26_x64-linux.tar.bz2 \
+	&& tar -jxvf minimap2-2.26_x64-linux.tar.bz2 \
+	&& mv minimap2-2.26_x64-linux/minimap2 /usr/local/bin/minimap2
+
+# Install bowtie2
+RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.2/bowtie2-2.5.2-source.zip/download \
+	&& unzip download \
+	&& cd bowtie2-2.5.2 \
+	&& make
+RUN cd bowtie2-2.5.2 \
+	&& cp bowtie2* /usr/local/bin/
+
+# Install Qualimap
+RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip \
+	&& unzip qualimap_v2.3.zip
+
+RUN apt update && apt -y install libxml2-dev libcurl4-openssl-dev
+
+RUN install2.r --error optparse
+RUN R -e "BiocManager::install(c('NOISeq','Repitools','Rsamtools','GenomicFeatures','rtracklayer'))"
+RUN mv /home/rstudio/software/qualimap_v2.3/* /usr/local/bin/
+
+# Install picard
+RUN wget https://github.com/broadinstitute/picard/releases/download/3.1.1/picard.jar \
+       && mv /home/rstudio/software/picard.jar /usr/share/java/picard.jar
+	# latest java version needed for picard to work
+RUN apt update && apt -y install openjdk-17-jre
+
+# Install fastp
+RUN wget http://opengene.org/fastp/fastp.0.23.4 \
+	&& mv fastp.0.23.4 fastp \
+	&& chmod a+x ./fastp \
+	&& mv fastp /usr/local/bin/fastp
+
+# Install DeDup
+RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8.jar \
+	&& mv /home/rstudio/software/DeDup-0.12.8.jar /usr/share/java/DeDup-0.12.8.jar
+
 # Clean up
 RUN apt clean all \
 && rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && rm -rf /var/tmp/*
