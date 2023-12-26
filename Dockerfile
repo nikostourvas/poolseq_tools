@@ -1,5 +1,5 @@
 ####### Dockerfile #######
-FROM rocker/tidyverse:4.3.0
+FROM rocker/tidyverse:4.3.2
 LABEL maintainer="nikostourvas@gmail.com"
 
 # Create directory for population genetics software on linux and use it as working dir
@@ -13,6 +13,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Install ubuntu binaries
 RUN apt update && apt -y install \
 	vim \
+	nano \
+	less \
 	tree \
 	time \
 	parallel \
@@ -28,16 +30,6 @@ RUN apt update && apt -y install \
 	ea-utils \
 	seqtk \
 	plink plink1.9 plink2
-
-# Install Baypass
-#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
-#        && tar -zxvf baypass_2.4.tar.gz \
-RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
-        && cd baypass_public/sources \
-        && make clean all FC=gfortran \
-        && make clean \
-        && chmod +x g_baypass \
-        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
 
 # Install VarScan
 RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
@@ -146,39 +138,13 @@ RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	&& unzip popoolation2_1201.zip && rm popoolation2_1201.zip \
 	&& mv popoolation2_1201 /usr/share/
 
-# Install seqtk
-# No need to install this way as latest version is quite old, and it is already packaged
-# by Ubuntu maintainers
-#RUN apt update -qq \
- 	#&& apt -y install zlib1g-dev \
-	#&& git clone https://github.com/lh3/seqtk.git \
-	#&& cd seqtk \
-	#&& make
-	#&& ln -s /programs/seqtk /usr/local/bin/seqtk
-
-# Install ea-utils
-# No need to install this way as latest version is quite old, and it is already packaged
-# by Ubuntu maintainers
-#RUN apt update -qq \
-	#&& apt -y install libgsl0-dev zlib1g-dev build-essential \
-	#&& git clone https://github.com/ExpressionAnalysis/ea-utils.git \
-	#&& cd ea-utils/clipper \
-	#&& make \
-	#&& make install \
-	#&& rm -rf ../../ea-utils/ #remove files - make admin happy
-
 # Install gatk
-# Code left for legacy reasons
-# No need to install it, as broadinstitute provides a dedicated container for gatk
+# Additionally, Broadinstitute provides a dedicated container for gatk
 # https://hub.docker.com/r/broadinstitute/gatk
-#RUN wget https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip \
-#	&& unzip gatk-4.3.0.0.zip \
-#	&& rm gatk-4.3.0.0.zip \
-#	&& mv gatk-4.3.0.0 /usr/share/
-
-# Install picard
-#RUN wget https://github.com/broadinstitute/picard/releases/download/3.0.0/picard.jar \
-#	&& mv /home/rstudio/software/picard.jar /usr/share/java/picard.jar
+RUN wget https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip \
+	&& unzip gatk-4.5.0.0.zip \
+	&& rm gatk-4.5.0.0.zip \
+	&& mv gatk-4.5.0.0 /usr/share/
 
 # Install bam-readcount
 RUN git clone https://github.com/genome/bam-readcount \
@@ -213,126 +179,6 @@ RUN wget https://github.com/stschiff/msmc2/releases/download/v2.1.4/msmc2_Linux 
         && chmod +x msmc2_Linux \
         && mv /home/rstudio/software/msmc2_Linux /usr/local/bin/msmc2
 
-# Install R packages from Bioconductor
-RUN R -e "BiocManager::install(c('qvalue', 'ggtree'))"
-
-# Install R packages from CRAN
-RUN apt update -qq \
-  	&& apt -y install libudunits2-dev # needed for scatterpie
-RUN install2.r --error \
-  	viridis \
-  	multcomp \
-  	ggThemeAssist \
-  	remedy \
-  	factoextra \
-  	kableExtra \
-  	scatterpie \
-  	ggmap \
-  	ggsn \
-  	splitstackshape \
-  	gridGraphics \
-	gridExtra \
-  	officer \
-  	flextable \
-  	eulerr \
-	car \
-	sjstats \
-	psych \
-  	gghalves \	
-	adegenet \
-	poolHelper \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-# The following section is copied from hlapp/rpopgen Dockerfile
-# It is copied instead of using it as a base for this image because it is not 
-# updated regularly
-
-#------------------------------------------------------------------------------
-## Some of the R packages depend on libraries not already installed in the
-## base image, so they need to be installed here for the R package
-## installations to succeed.
-#RUN apt-get update \
-    #&& apt-get install -y \
-    #libgsl0-dev \
-    #libmagick++-dev \
-    #libudunits2-dev \
-    #gdal-bin \
-    #libgdal-dev
-
-## Install population genetics packages from CRAN
-RUN rm -rf /tmp/*.rds \
-&&  install2.r --error \
-	poolfstat \
-	mvtnorm \
-	geigen \
-	pcadapt \
-	OptM \
-	vcfR \
-&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-#------------------------------------------------------------------------------
-
-# Install EAA analysis software
-
-## depencencies
-RUN apt update && apt -y --no-install-recommends \
-	install gdal-bin proj-bin libgdal-dev libproj-dev 
-
-## R packages from CRAN
-RUN install2.r --error \
-        raster \
-        rgeos \
-        rgdal \
-        maps \
-        sf \
-        corrplot \
-        FactoMineR \
-        factoextra \
-        ggpubr \
-        lfmm \
-        plyr \
-        gdm \
-        foreach \
-        parallel \
-        doParallel \    
-        fields \
-        geosphere \
-        plotly \
-        manipulateWidget \
-  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-RUN install2.r --error \
-        gradientForest -r http://R-Forge.R-project.org \
-        extendedForest -r http://R-Forge.R-project.org \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-## Install R packages from github
-### GAPIT3 needs LDheatmap, but LDheatmap is no longer in CRAN. So install it
-RUN R -e "BiocManager::install(c('snpStats','rtracklayer','GenomicRanges','GenomInfoDb','IRanges'))"
-RUN installGithub.r \
-	SFUStatgen/LDheatmap
-
-RUN installGithub.r \
-  	jiabowang/GAPIT3 \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-RUN installGithub.r \
-	joao-mcarvalho/poolABC \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-	
-# Install DIYABC RF (pending install of diyabcGUI R package)
-RUN pip3 install pyabcranger
-
-RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
-	&& cd diyabc \
-	&& mkdir build \
-	&& cd build \
-	&& cmake ../ \
-	&& cmake --build . --config Release
-
-# Install additional utilities
-RUN apt update && apt -y install \
-	nano less
-
 # Install mosdepth
 RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
 	&& chmod a+x mosdepth \
@@ -341,12 +187,6 @@ RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
 RUN wget https://raw.githubusercontent.com/brentp/mosdepth/master/scripts/plot-dist.py \
 	&& chmod a+x plot-dist.py \
 	&& mv /home/rstudio/software/plot-dist.py /usr/local/bin/plot-dist.py
-
-# Install grenedalf
-RUN git clone --recursive https://github.com/lczech/grenedalf.git \
-	&& cd grenedalf \
-	&& make \
-	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
 
 # Install vcflib
 RUN apt update && apt -y install libvcflib-tools libvcflib-dev
@@ -389,6 +229,148 @@ RUN wget http://opengene.org/fastp/fastp.0.23.4 \
 # Install DeDup
 RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8.jar \
 	&& mv /home/rstudio/software/DeDup-0.12.8.jar /usr/share/java/DeDup-0.12.8.jar
+
+# Install R packages from Bioconductor
+RUN R -e "BiocManager::install(c('qvalue', 'ggtree', 'LEA'))"
+
+# Install R packages from CRAN
+RUN apt update -qq \
+  	&& apt -y install libudunits2-dev # needed for scatterpie
+RUN install2.r --error \
+  	viridis \
+  	multcomp \
+  	ggThemeAssist \
+  	remedy \
+  	factoextra \
+  	kableExtra \
+  	scatterpie \
+  	ggmap \
+  	#ggsn \
+  	splitstackshape \
+  	gridGraphics \
+	gridExtra \
+  	officer \
+  	flextable \
+  	eulerr \
+	car \
+	sjstats \
+	psych \
+  	gghalves \	
+	adegenet \
+	poppr \
+	hierfstat \
+	pegas \
+	ape \
+	phytools \
+	scales \
+	vegan \
+	gtools \
+	reshape \
+	reshape2 \
+	gplots \
+	gsalib \
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+# Fix adegenet install
+RUN apt update && apt -y install libglpk-dev
+
+# The following section is inspired from hlapp/rpopgen Dockerfile
+#------------------------------------------------------------------------------
+## Some of the R packages depend on libraries not already installed in the
+## base image, so they need to be installed here for the R package
+## installations to succeed.
+RUN apt-get update \
+    && apt-get install -y \
+    	libgsl0-dev \
+    	libmagick++-dev \
+    	libudunits2-dev \
+    	gdal-bin \
+    	libgdal-dev
+
+## Install population genetics packages from CRAN
+RUN rm -rf /tmp/*.rds \
+&&  install2.r --error \
+	poolfstat \
+	mvtnorm \
+	geigen \
+	pcadapt \
+	OptM \
+	vcfR \
+	poolHelper \
+	poolABC \
+	conStruct \
+&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+#------------------------------------------------------------------------------
+
+# Install EAA analysis software
+
+## depencencies
+RUN apt update && apt -y --no-install-recommends \
+	install gdal-bin proj-bin libgdal-dev libproj-dev 
+
+## R packages from CRAN
+RUN install2.r --error \
+        raster \
+        #rgeos \
+        #rgdal \
+        maps \
+        sf \
+        corrplot \
+        FactoMineR \
+        factoextra \
+        ggpubr \
+        lfmm \
+        plyr \
+        gdm \
+        foreach \
+        parallel \
+        doParallel \    
+        fields \
+        geosphere \
+        plotly \
+        manipulateWidget \
+  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+RUN install2.r --error \
+        gradientForest -r http://R-Forge.R-project.org \
+        extendedForest -r http://R-Forge.R-project.org \
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+## Install R packages from github
+### GAPIT3 needs LDheatmap, but LDheatmap is no longer in CRAN. So install it
+RUN R -e "BiocManager::install(c('snpStats','rtracklayer','GenomicRanges','GenomInfoDb','IRanges'))"
+RUN installGithub.r \
+	SFUStatgen/LDheatmap
+
+RUN installGithub.r \
+  	jiabowang/GAPIT3 \
+  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+# Install DIYABC RF (pending install of diyabcGUI R package)
+RUN pip3 install pyabcranger
+
+RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
+	&& cd diyabc \
+	&& mkdir build \
+	&& cd build \
+	&& cmake ../ \
+	&& cmake --build . --config Release
+
+# Install grenedalf
+RUN git clone --recursive https://github.com/lczech/grenedalf.git \
+	&& cd grenedalf \
+	&& make \
+	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
+
+# Install Baypass
+#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
+#        && tar -zxvf baypass_2.4.tar.gz \
+#RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
+#        && cd baypass_public/sources \
+#       && make clean all FC=gfortran \
+#        && make clean \
+#        && chmod +x g_baypass \
+#        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
 
 # Clean up
 RUN apt clean all \
