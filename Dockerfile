@@ -365,12 +365,17 @@ RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 # Install Baypass
 #RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
 #        && tar -zxvf baypass_2.4.tar.gz \
-#RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
-#        && cd baypass_public/sources \
-#       && make clean all FC=gfortran \
-#        && make clean \
-#        && chmod +x g_baypass \
-#        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
+RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
+        && cd baypass_public/sources \
+       && make clean all FC=gfortran \
+        && make clean \
+        && chmod +x g_baypass \
+        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
+
+# Install Bayenv2
+RUN wget https://bitbucket.org/tguenther/bayenv2_public/raw/edcea648df0f3cb5ea56c973497a9125f57c875f/bayenv2 \
+	&& chmod +x bayenv2 \
+	&& mv /home/rstudio/software/bayenv2 /usr/bin/bayenv2
 
 # Clean up
 RUN apt clean all \
