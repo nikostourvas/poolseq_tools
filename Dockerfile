@@ -31,6 +31,22 @@ RUN apt update && apt -y install \
 	seqtk \
 	plink plink1.9 plink2
 
+# Install Baypass
+# Baypass is available from an INRAE server which is quite unreliable, so we install it first
+#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
+#        && tar -zxvf baypass_2.4.tar.gz \
+RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
+        && cd baypass_public/sources \
+       && make clean all FC=gfortran \
+        && make clean \
+        && chmod +x g_baypass \
+        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
+
+# Install Bayenv2
+RUN wget https://bitbucket.org/tguenther/bayenv2_public/raw/edcea648df0f3cb5ea56c973497a9125f57c875f/bayenv2 \
+	&& chmod +x bayenv2 \
+	&& mv /home/rstudio/software/bayenv2 /usr/bin/bayenv2
+
 # Install VarScan
 RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
 	&& mv VarScan.v2.4.6.jar /usr/share/java/varscan.jar
@@ -288,6 +304,7 @@ RUN apt-get update \
     	libgdal-dev
 
 ## Install population genetics packages from CRAN
+## mvtnorm and geigen needed for Baypass
 RUN rm -rf /tmp/*.rds \
 &&  install2.r --error \
 	poolfstat \
@@ -361,21 +378,6 @@ RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& cd grenedalf \
 	&& make \
 	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
-
-# Install Baypass
-#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
-#        && tar -zxvf baypass_2.4.tar.gz \
-RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
-        && cd baypass_public/sources \
-       && make clean all FC=gfortran \
-        && make clean \
-        && chmod +x g_baypass \
-        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
-
-# Install Bayenv2
-RUN wget https://bitbucket.org/tguenther/bayenv2_public/raw/edcea648df0f3cb5ea56c973497a9125f57c875f/bayenv2 \
-	&& chmod +x bayenv2 \
-	&& mv /home/rstudio/software/bayenv2 /usr/bin/bayenv2
 
 # Clean up
 RUN apt clean all \
