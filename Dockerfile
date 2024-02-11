@@ -250,6 +250,7 @@ RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree', 'LEA'))"
 
 # Install R packages from CRAN
+# mclust needed for package LEA
 RUN apt update -qq \
   	&& apt -y install libudunits2-dev # needed for scatterpie
 RUN install2.r --error \
@@ -285,6 +286,8 @@ RUN install2.r --error \
 	reshape2 \
 	gplots \
 	gsalib \
+	gdistance \
+	mclust \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Fix adegenet install
@@ -373,11 +376,25 @@ RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
 	&& cmake ../ \
 	&& cmake --build . --config Release
 
+# Install PHYLIP
+RUN apt update && apt -y install phylip python3-venv python3-pip
+
+# Install dendropy and biopython
+RUN pip3 install dendropy biopython
+
 # Install grenedalf
 RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& cd grenedalf \
 	&& make \
 	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
+
+# Install dependencies of R package BITE
+RUN R -e "BiocManager::install(c('SNPRelate','gdsfmt'))"
+
+RUN R -q -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/RCircos/RCircos_1.1.3.tar.gz")'
+
+RUN  R -q -e 'install.packages("BITEV2_0.1.0.tar.gz")'
+
 
 # Clean up
 RUN apt clean all \
