@@ -288,6 +288,7 @@ RUN install2.r --error \
 	gsalib \
 	gdistance \
 	mclust \
+	xlsx \
   	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Fix adegenet install
@@ -385,8 +386,11 @@ RUN pip3 install dendropy biopython
 # Install grenedalf
 RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& cd grenedalf \
-	&& make \
+	&& make -j 4 \
 	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
+#RUN wget https://github.com/lczech/grenedalf/releases/download/v0.6.2/grenedalf_v0.6.2_linux_x86_64 \
+#	&& chmod +x grenedalf_v0.6.2_linux_x86_64 \
+#	&& mv grenedalf_v0.6.2_linux_x86_64 /usr/bin/grenedalf
 
 # Install dependencies of R package BITE
 RUN R -e "BiocManager::install(c('SNPRelate','gdsfmt'))"
@@ -395,6 +399,44 @@ RUN R -q -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/RC
 
 RUN  R -q -e 'install.packages("BITEV2_0.1.0.tar.gz")'
 
+# Install packages needed for HDplot
+RUN R -e "BiocManager::install(c('geneplotter'))"
+
+# Install fastsimcoal2
+RUN wget http://cmpg.unibe.ch/software/fastsimcoal28/downloads/fsc28_linux64.zip \
+	&& unzip fsc28_linux64.zip \
+	&& mv fsc28_linux64/fsc28 /usr/local/bin/ \
+	&& rm fsc28_linux64/fastsimcoal28.pdf
+
+# Install rename utility
+RUN apt update && apt -y install rename
+
+# Install python dependencies for WZA
+RUN pip3 install pandas scipy numpy
+
+# Install PopLDdecay
+RUN wget https://github.com/hewm2008/PopLDdecay/archive/v3.43.tar.gz -O PopLDdecay3.4.3.tar.gz \
+	&& tar -zxvf PopLDdecay3.4.3.tar.gz \
+	&& cd PopLDdecay-3.43/src \
+	&& sh make.sh \
+	&& cd ../bin && cp -r * /usr/local/bin/ \
+	&& cd ../../ ** rm PopLDdecay3.4.3.tar.gz
+
+# Install R packages to compare outlier gene windows across species
+RUN install2.r --error \
+        poolr \
+  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+RUN R -e "remotes::install_github('TBooker/PicMin', force=TRUE)"
+
+# Install BayPass 3.1
+RUN wget https://forge.inrae.fr/mathieu.gautier/baypass_public/-/archive/v3.1/baypass_public-v3.1.tar.gz \
+	&& tar -zxvf baypass_public-v3.1.tar.gz \
+	&& cd baypass_public-v3.1/sources/ \
+	&& make clean all FC=gfortran \
+	&& make clean \
+	&& chmod +x g_baypass \
+	&& mv /home/rstudio/software/baypass_public-v3.1/sources/g_baypass /usr/bin/g_baypass3
 
 # Clean up
 RUN apt clean all \
