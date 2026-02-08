@@ -1,61 +1,74 @@
 ####### Dockerfile #######
-FROM rocker/tidyverse:4.3.2
+FROM rocker/tidyverse:4.5.2
 LABEL maintainer="nikostourvas@gmail.com"
 
-# Create directory for population genetics software on linux and use it as working dir
-RUN mkdir /home/rstudio/software
-WORKDIR /home/rstudio/software
+# 1. SYSTEM CONFIGURATION
+ENV DEBIAN_FRONTEND=noninteractive \
+    TERM=linux \
+    PATH=/usr/local/bin:$PATH
 
-# Prevent error messages from debconf about non-interactive frontend
-ARG TERM=linux
-ARG DEBIAN_FRONTEND=noninteractive
+# 2. UNIFIED APT INSTALLATION
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # --- Core Utilities ---
+    vim nano less tree time parallel \
+    wget curl git unzip bzip2 gnupg ca-certificates \
+    build-essential cmake autoconf automake \
+    rename \
+    # --- Java ---
+    default-jre openjdk-17-jre \
+    # --- Python dependencies ---
+    python3-dev python3-pip python3-venv \
+    # --- Bioinformatics Libraries (Dev headers) ---
+    zlib1g-dev libbz2-dev liblzma-dev libtinfo6 \
+    libncurses5-dev libcurl4-openssl-dev libxml2-dev libssl-dev \
+    libgsl-dev libgsl27 libgslcblas0 \
+    libglpk-dev libudunits2-dev \
+    libmagick++-dev gdal-bin libgdal-dev libproj-dev \
+    # --- Bio Tools available in Ubuntu ---
+    bwa trimmomatic fastqc seqtk bamtools ea-utils \
+    plink1.9 plink2 phylip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install ubuntu binaries
-RUN apt update && apt -y install \
-	vim \
-	nano \
-	less \
-	tree \
-	time \
-	parallel \
-	default-jre \
-	build-essential cmake autoconf automake \
-	zlib1g-dev libbz2-dev liblzma-dev libtinfo5 \
-	bwa \
-	trimmomatic \
-	fastqc \
-	seqtk \
-	picard-tools \
-	bamtools \
-	ea-utils \
-	seqtk \
-	plink plink1.9 plink2
+# 3. MANUALLY COMPILED BIOINFORMATICS TOOLS
+WORKDIR /usr/local/src
 
-# Install Baypass
-# Baypass is available from an INRAE server which is quite unreliable, so we install it first
-#RUN wget http://www1.montpellier.inra.fr/CBGP/software/baypass/files/baypass_2.4.tar.gz \
-#        && tar -zxvf baypass_2.4.tar.gz \
-RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
-        && cd baypass_public/sources \
-       && make clean all FC=gfortran \
-        && make clean \
-        && chmod +x g_baypass \
-        && mv /home/rstudio/software/baypass_public/sources/g_baypass /usr/bin/g_baypass
+# --- Samtools / Bcftools / Htslib ---
+ARG SAM_VER=1.23
+RUN wget https://github.com/samtools/samtools/releases/download/${SAM_VER}/samtools-${SAM_VER}.tar.bz2 \
+    && tar -xjf samtools-${SAM_VER}.tar.bz2 \
+    && cd samtools-${SAM_VER} && ./configure && make && make install \
+    && cd .. \
+    && wget https://github.com/samtools/bcftools/releases/download/${SAM_VER}/bcftools-${SAM_VER}.tar.bz2 \
+    && tar -xjf bcftools-${SAM_VER}.tar.bz2 \
+    && cd bcftools-${SAM_VER} && ./configure && make && make install \
+    && cd .. \
+    && wget https://github.com/samtools/htslib/releases/download/${SAM_VER}/htslib-${SAM_VER}.tar.bz2 \
+    && tar -xjf htslib-${SAM_VER}.tar.bz2 \
+    && cd htslib-${SAM_VER} && ./configure && make && make install \
+    && rm -rf *tools-*.tar.bz2 htslib-*.tar.bz2
 
-# Install Bayenv2
-RUN wget https://bitbucket.org/tguenther/bayenv2_public/raw/edcea648df0f3cb5ea56c973497a9125f57c875f/bayenv2 \
-	&& chmod +x bayenv2 \
-	&& mv /home/rstudio/software/bayenv2 /usr/bin/bayenv2
+# --- Refresh Shared Library Cache ---
+# Crucial: Ensures the system finds the libhts.so we just compiled
+RUN ldconfig
 
-# Install VarScan
-RUN wget https://github.com/dkoboldt/varscan/releases/download/v2.4.6/VarScan.v2.4.6.jar \
-	&& mv VarScan.v2.4.6.jar /usr/share/java/varscan.jar
+# 4. PYTHON TOOLS via UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Install MultiQC
-RUN apt update && apt -y install python3-venv python3-pip \
-	&& pip3 install multiqc
-	
-# Install TreeMix
+# Install Python tools
+# We set CFLAGS/LDFLAGS so pip finds the HTSlib headers we just compiled in /usr/local
+ENV CFLAGS="-I/usr/local/include"
+ENV LDFLAGS="-L/usr/local/lib"
+
+RUN uv pip install --system --break-system-packages \
+    numpy pandas scipy matplotlib seaborn \
+    multiqc \
+    dendropy biopython bcbio-gff intermine \
+    pyabcranger
+
+# 5. REMAINING BINARIES
+WORKDIR /usr/local/src
+
+# TreeMix
 RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
 	&& git clone https://bitbucket.org/nygcresearch/treemix.git \
 	&& cd treemix \
@@ -63,149 +76,65 @@ RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
   	&& make \
   	&& make install
 
-# Install FastQC
-# No need to install this way as latest version is quite old, and it is already packaged
-# by Ubuntu maintainers
-#RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip \
-	#&& unzip fastqc_v0.11.9.zip && rm fastqc_v0.11.9.zip \
-	#&& cd FastQC/ \
-	#&& chmod 755 fastqc \
-	#&& ln -s /home/rstudio/software/fastqc_v0.11.9/FastQC/fastqc /usr/local/bin/fastqc
-
-# Install Trimmomatic
-# No need to install this way as latest version is quite old, and it is already packaged
-# by Ubuntu maintainers
-#RUN wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip \
-	#&& unzip Trimmomatic-0.39.zip \
-	#&& rm Trimmomatic-0.39.zip \
-	#&& cd Trimmomatic-0.39 \
-	#&& ln -s /home/rstudio/software/Trimmomatic-0.39/trimmomatic-0.39.jar /usr/share/trimmomatic-0.39.jar
-
-# Install flash
-RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
-	&& tar -xvf FLASH-1.2.11.tar.gz && rm FLASH-1.2.11.tar.gz \
-	&& cd FLASH-1.2.11 \
-	&& make \
-	&& ln -s /home/rstudio/software/FLASH-1.2.11/flash /usr/local/bin/flash
-	
-# Install bwa
-# No need to install this way as bwa latest version is quite old, and it is already packaged
-# by Ubuntu maintainers
-#RUN git clone https://github.com/lh3/bwa.git \
-	#&& cd bwa \
-	#&& make \
-	#&& ln -s /home/rstudio/software/bwa_repo/bwa/bwa /usr/local/bin/bwa
-
-# Install bwa-mem2
-# produces alignment identical to bwa and is ~1.3-3.1x faster depending on the use-case
-# Only available for certain CPU models
-RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
-	&& tar -jxf bwa-mem2-2.2.1_x64-linux.tar.bz2 \
-	&& mv bwa-mem2-2.2.1_x64-linux /usr/local/bin/bwa-mem2
-
-# Install bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary \
-	&& mv bedtools.static.binary bedtools \
-	&& chmod a+x bedtools \
-	&& mv /home/rstudio/software/bedtools /usr/local/bin/bedtools
-
-# Install samtools
-RUN apt -qq update && apt -y install libncurses5-dev libbz2-dev bzip2 liblzma-dev
-RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.16.tar.bz2 \
-	&& tar -xvf samtools-1.16.tar.bz2 && rm samtools-1.16.tar.bz2 \
-	&& cd samtools-1.16/ \
-	&& ./configure \
-	&& make \
-	&& make install
-
-# Install BCFtools
-RUN wget https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 \
-	&& tar -xvf bcftools-1.16.tar.bz2 && rm bcftools-1.16.tar.bz2 \
-	&& cd bcftools-1.16/ \
-	&& ./configure \
-	&& make \
-	&& make install
-
-# Install htslib
-RUN wget https://github.com/samtools/htslib/releases/download/1.16/htslib-1.16.tar.bz2 \
-	&& tar -xvf htslib-1.16.tar.bz2 && rm htslib-1.16.tar.bz2 \
-	&& cd htslib-1.16/ \
-	&& ./configure \
-	&& make \
-	&& make install
-
-# Install freebayes
-RUN wget https://github.com/freebayes/freebayes/releases/download/v1.3.6/freebayes-1.3.6-linux-amd64-static.gz \
-	&& gunzip freebayes-1.3.6-linux-amd64-static.gz \
-	&& chmod +x freebayes-1.3.6-linux-amd64-static \
-	&& mv freebayes-1.3.6-linux-amd64-static /usr/local/bin/freebayes
-
-# Install vcftools
-RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz \
-	&& tar -xvf vcftools-0.1.16.tar.gz && rm vcftools-0.1.16.tar.gz \
-	&& cd vcftools-0.1.16/ \
-	&& ./configure \
-	&& make \
-	&& make install
-
-# Install Popoolation2
+# Popoolation2
 RUN wget https://sourceforge.net/projects/popoolation2/files/latest/download \
 	-O popoolation2_1201.zip \
 	&& unzip popoolation2_1201.zip && rm popoolation2_1201.zip \
 	&& mv popoolation2_1201 /usr/share/
 
-# Install gatk
-# Additionally, Broadinstitute provides a dedicated container for gatk
-# https://hub.docker.com/r/broadinstitute/gatk
-RUN wget https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip \
-	&& unzip gatk-4.5.0.0.zip \
-	&& rm gatk-4.5.0.0.zip \
-	&& mv gatk-4.5.0.0 /usr/share/
+# --- BWA-MEM2 ---
+RUN wget https://github.com/bwa-mem2/bwa-mem2/releases/download/v2.2.1/bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && tar -xjf bwa-mem2-2.2.1_x64-linux.tar.bz2 \
+    && mv bwa-mem2-2.2.1_x64-linux/bwa-mem2* /usr/local/bin/ \
+    && rm -rf bwa-mem2*
 
-# Install bam-readcount
-RUN git clone https://github.com/genome/bam-readcount \
-	&& cd bam-readcount \
-	&& mkdir build \
-	&& cd build \
-	&& cmake .. \
-	&& make
-RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
+# --- Bedtools ---
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.31.0/bedtools.static \
+    && chmod +x bedtools.static \
+    && mv bedtools.static /usr/local/bin/bedtools
 
-# Install Bayescan
-RUN mkdir /home/rstudio/software/bayescan \
-	&& cd /home/rstudio/software/bayescan \
-	&& wget http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip \
-	&& unzip BayeScan2.1.zip \
-	&& rm -rf BayeScan2.1.zip \
-	&& chmod +rwx /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-	&& mv /home/rstudio/software/bayescan/BayeScan2.1/binaries/BayeScan2.1_linux64bits \
-  /usr/local/bin/bayescan
+# --- Freebayes ---
+RUN wget https://github.com/freebayes/freebayes/releases/download/v1.3.6/freebayes-1.3.6-linux-amd64-static.gz \
+    && gunzip freebayes-1.3.6-linux-amd64-static.gz \
+    && chmod +x freebayes-1.3.6-linux-amd64-static \
+    && mv freebayes-1.3.6-linux-amd64-static /usr/local/bin/freebayes
 
-# Install pixy
-# make sure to have pip installed previously
-RUN wget -qO- "https://github.com/ksamuk/pixy/archive/refs/tags/1.2.7.beta1.tar.gz" | tar -zx
-RUN pip install pixy-1.2.7.beta1/
+# --- VCFtools ---
+# Manually compiling this replaces the need for libvcflib-tools
+RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.17/vcftools-0.1.17.tar.gz \
+    && tar -xzf vcftools-0.1.17.tar.gz \
+    && cd vcftools-0.1.17 && ./configure && make && make install \
+    && cd .. && rm -rf vcftools*
 
-# Install python 2 for legacy scripts
-RUN apt update && apt -y install python2
+# --- GATK & Picard ---
+RUN mkdir -p /opt/gatk \
+    && wget https://github.com/broadinstitute/gatk/releases/download/4.6.2.0/gatk-4.6.2.0.zip \
+    && unzip -q gatk-4.6.2.0.zip \
+    && mv gatk-4.6.2.0/* /opt/gatk/ \
+    && ln -s /opt/gatk/gatk /usr/local/bin/gatk \
+    && rm gatk-4.6.2.0.zip \
+    && wget https://github.com/broadinstitute/picard/releases/download/3.4.0/picard.jar \
+    && mv picard.jar /usr/share/java/picard.jar
 
-# Install msmc2
-RUN apt update && apt -y install libgsl-dev libgsl27 libgslcblas0 libgsl-dbg
-RUN wget https://github.com/stschiff/msmc2/releases/download/v2.1.4/msmc2_Linux \
-        && chmod +x msmc2_Linux \
-        && mv /home/rstudio/software/msmc2_Linux /usr/local/bin/msmc2
+# --- Baypass ---
+RUN git clone https://forgemia.inra.fr/mathieu.gautier/baypass_public.git \
+    && cd baypass_public/sources \
+    && make clean all FC=gfortran \
+    && mv g_baypass /usr/local/bin/g_baypass \
+    && cd ../.. && rm -rf baypass_public
 
-# Install mosdepth
-RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.4/mosdepth \
-	&& chmod a+x mosdepth \
-	&& mv /home/rstudio/software/mosdepth /usr/local/bin/mosdepth
+# --- PopLDdecay ---
+RUN wget https://github.com/hewm2008/PopLDdecay/archive/v3.43.tar.gz \
+    && tar -zxf v3.43.tar.gz \
+    && cd PopLDdecay-3.43/src \
+    && sh make.sh \
+    && cp -r ../bin/* /usr/local/bin/ \
+    && cd ../.. && rm -rf PopLDdecay* v3.43.tar.gz
 
-RUN wget https://raw.githubusercontent.com/brentp/mosdepth/master/scripts/plot-dist.py \
-	&& chmod a+x plot-dist.py \
-	&& mv /home/rstudio/software/plot-dist.py /usr/local/bin/plot-dist.py
-
-# Install vcflib
-RUN apt update && apt -y install libvcflib-tools libvcflib-dev
+# --- Mosdepth ---
+RUN wget https://github.com/brentp/mosdepth/releases/download/v0.3.12/mosdepth \
+    && chmod a+x mosdepth \
+    && mv mosdepth /usr/local/bin/mosdepth
 
 # Install minimap2
 RUN wget https://github.com/lh3/minimap2/releases/download/v2.26/minimap2-2.26_x64-linux.tar.bz2 \
@@ -213,163 +142,14 @@ RUN wget https://github.com/lh3/minimap2/releases/download/v2.26/minimap2-2.26_x
 	&& mv minimap2-2.26_x64-linux/minimap2 /usr/local/bin/minimap2
 
 # Install bowtie2
-RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.2/bowtie2-2.5.2-source.zip/download \
-	&& unzip download \
-	&& cd bowtie2-2.5.2 \
-	&& make
-RUN cd bowtie2-2.5.2 \
-	&& cp bowtie2* /usr/local/bin/
-
-# Install Qualimap
-RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip \
-	&& unzip qualimap_v2.3.zip
-
-RUN apt update && apt -y install libxml2-dev libcurl4-openssl-dev
-
-RUN install2.r --error optparse
-RUN R -e "BiocManager::install(c('NOISeq','Repitools','Rsamtools','GenomicFeatures','rtracklayer'))"
-RUN mv /home/rstudio/software/qualimap_v2.3/* /usr/local/bin/
-
-# Install picard
-RUN wget https://github.com/broadinstitute/picard/releases/download/3.1.1/picard.jar \
-       && mv /home/rstudio/software/picard.jar /usr/share/java/picard.jar
-	# latest java version needed for picard to work
-RUN apt update && apt -y install openjdk-17-jre
-
-# Install fastp
-RUN wget http://opengene.org/fastp/fastp.0.23.4 \
-	&& mv fastp.0.23.4 fastp \
-	&& chmod a+x ./fastp \
-	&& mv fastp /usr/local/bin/fastp
-
-# Install DeDup
-RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8.jar \
-	&& mv /home/rstudio/software/DeDup-0.12.8.jar /usr/share/java/DeDup-0.12.8.jar
-
-# Install R packages from Bioconductor
-RUN R -e "BiocManager::install(c('qvalue', 'ggtree', 'LEA'))"
-
-# Install R packages from CRAN
-# mclust needed for package LEA
-RUN apt update -qq \
-  	&& apt -y install libudunits2-dev # needed for scatterpie
-RUN install2.r --error \
-  	viridis \
-  	multcomp \
-  	ggThemeAssist \
-  	remedy \
-  	factoextra \
-  	kableExtra \
-  	scatterpie \
-  	ggmap \
-  	#ggsn \
-  	splitstackshape \
-  	gridGraphics \
-	gridExtra \
-  	officer \
-  	flextable \
-  	eulerr \
-	car \
-	sjstats \
-	psych \
-  	gghalves \	
-	adegenet \
-	poppr \
-	hierfstat \
-	pegas \
-	ape \
-	phytools \
-	scales \
-	vegan \
-	gtools \
-	reshape \
-	reshape2 \
-	gplots \
-	gsalib \
-	gdistance \
-	mclust \
-	xlsx \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-# Fix adegenet install
-RUN apt update && apt -y install libglpk-dev
-
-# The following section is inspired from hlapp/rpopgen Dockerfile
-#------------------------------------------------------------------------------
-## Some of the R packages depend on libraries not already installed in the
-## base image, so they need to be installed here for the R package
-## installations to succeed.
-RUN apt-get update \
-    && apt-get install -y \
-    	libgsl0-dev \
-    	libmagick++-dev \
-    	libudunits2-dev \
-    	gdal-bin \
-    	libgdal-dev
-
-## Install population genetics packages from CRAN
-## mvtnorm and geigen needed for Baypass
-RUN rm -rf /tmp/*.rds \
-&&  install2.r --error \
-	poolfstat \
-	mvtnorm \
-	geigen \
-	pcadapt \
-	OptM \
-	vcfR \
-	poolHelper \
-	poolABC \
-	conStruct \
-&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-#------------------------------------------------------------------------------
-
-# Install EAA analysis software
-
-## depencencies
-RUN apt update && apt -y --no-install-recommends \
-	install gdal-bin proj-bin libgdal-dev libproj-dev 
-
-## R packages from CRAN
-RUN install2.r --error \
-        raster \
-        #rgeos \
-        #rgdal \
-        maps \
-        sf \
-        corrplot \
-        FactoMineR \
-        factoextra \
-        ggpubr \
-        lfmm \
-        plyr \
-        gdm \
-        foreach \
-        parallel \
-        doParallel \    
-        fields \
-        geosphere \
-        plotly \
-        manipulateWidget \
-  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-RUN install2.r --error \
-        gradientForest -r http://R-Forge.R-project.org \
-        extendedForest -r http://R-Forge.R-project.org \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-## Install R packages from github
-### GAPIT3 needs LDheatmap, but LDheatmap is no longer in CRAN. So install it
-RUN R -e "BiocManager::install(c('snpStats','rtracklayer','GenomicRanges','GenomInfoDb','IRanges'))"
-RUN installGithub.r \
-	SFUStatgen/LDheatmap
-
-RUN installGithub.r \
-  	jiabowang/GAPIT3 \
-  	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+# RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.5.2/bowtie2-2.5.2-source.zip/download \
+# 	&& unzip download \
+# 	&& cd bowtie2-2.5.2 \
+# 	&& make
+# RUN cd bowtie2-2.5.2 \
+# 	&& cp bowtie2* /usr/local/bin/
 
 # Install DIYABC RF (pending install of diyabcGUI R package)
-RUN pip3 install pyabcranger
-
 RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
 	&& cd diyabc \
 	&& mkdir build \
@@ -377,30 +157,11 @@ RUN git clone --recurse-submodules https://github.com/diyabc/diyabc.git \
 	&& cmake ../ \
 	&& cmake --build . --config Release
 
-# Install PHYLIP
-RUN apt update && apt -y install phylip python3-venv python3-pip
-
-# Install dendropy and biopython
-RUN pip3 install dendropy biopython
-
 # Install grenedalf
 RUN git clone --recursive https://github.com/lczech/grenedalf.git \
 	&& cd grenedalf \
 	&& make -j 4 \
-	&& mv /home/rstudio/software/grenedalf/bin/grenedalf /usr/bin/grenedalf
-#RUN wget https://github.com/lczech/grenedalf/releases/download/v0.6.2/grenedalf_v0.6.2_linux_x86_64 \
-#	&& chmod +x grenedalf_v0.6.2_linux_x86_64 \
-#	&& mv grenedalf_v0.6.2_linux_x86_64 /usr/bin/grenedalf
-
-# Install dependencies of R package BITE
-RUN R -e "BiocManager::install(c('SNPRelate','gdsfmt'))"
-
-RUN R -q -e 'install.packages("https://cran.r-project.org/src/contrib/Archive/RCircos/RCircos_1.1.3.tar.gz")'
-
-RUN  R -q -e 'install.packages("BITEV2_0.1.0.tar.gz")'
-
-# Install packages needed for HDplot
-RUN R -e "BiocManager::install(c('geneplotter'))"
+	&& mv bin/grenedalf /usr/local/bin/grenedalf
 
 # Install fastsimcoal2
 RUN wget http://cmpg.unibe.ch/software/fastsimcoal28/downloads/fsc28_linux64.zip \
@@ -408,36 +169,68 @@ RUN wget http://cmpg.unibe.ch/software/fastsimcoal28/downloads/fsc28_linux64.zip
 	&& mv fsc28_linux64/fsc28 /usr/local/bin/ \
 	&& rm fsc28_linux64/fastsimcoal28.pdf
 
-# Install rename utility
-RUN apt update && apt -y install rename
+# Install blast+
+RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.17.0+-x64-linux.tar.gz \
+	&& tar -xvf ncbi-blast-2.17.0+-x64-linux.tar.gz
+RUN rm ncbi-blast-2.17.0+-x64-linux.tar.gz \
+	&& mv ncbi-blast-2.17.0+/bin/* /usr/local/bin/ \
+	&& rm -rf ncbi-blast-2.17.0+
 
-# Install python dependencies for WZA
-RUN pip3 install pandas scipy numpy
 
-# Install PopLDdecay
-RUN wget https://github.com/hewm2008/PopLDdecay/archive/v3.43.tar.gz -O PopLDdecay3.4.3.tar.gz \
-	&& tar -zxvf PopLDdecay3.4.3.tar.gz \
-	&& cd PopLDdecay-3.43/src \
-	&& sh make.sh \
-	&& cd ../bin && cp -r * /usr/local/bin/ \
-	&& cd ../../ ** rm PopLDdecay3.4.3.tar.gz
+# 6. R PACKAGES
+# --- CRAN PACKAGES ---
+RUN install2.r --error --skipinstalled -n 4 \
+    --repos https://cran.rstudio.com \
+    # Utilities & Plotting
+    viridis multcomp remedy factoextra scatterpie ggmap splitstackshape \
+    gridGraphics gridExtra officer flextable eulerr car sjstats psych \
+    data.table ggrepel optparse
 
-# Install R packages to compare outlier gene windows across species
-RUN install2.r --error \
-        poolr \
-  && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+RUN install2.r --error --skipinstalled -n 4 \
+    --repos https://cran.rstudio.com \
+    # PopGen & Stats
+    adegenet poppr hierfstat pegas ape phytools scales vegan \
+    gtools reshape reshape2 gplots gsalib gdistance mclust \
+    mvtnorm geigen poolfstat pcadapt OptM vcfR conStruct \
+    poolr \
+	usdm ClustOfVar lme4 lmerTest emmeans MuMIn 
+    # poolr
 
-RUN R -e "remotes::install_github('TBooker/PicMin', force=TRUE)"
+RUN install2.r --error --skipinstalled -n 4 \
+    --repos https://cran.rstudio.com \
+    # Spatial & Env
+    raster maps sf corrplot FactoMineR ggpubr \
+    plyr gdm foreach doParallel fields geosphere \
+    terra rnaturalearth geodata plotly manipulateWidget
 
-# Install BayPass 3.1
-RUN wget https://forge.inrae.fr/mathieu.gautier/baypass_public/-/archive/v3.1/baypass_public-v3.1.tar.gz \
-	&& tar -zxvf baypass_public-v3.1.tar.gz \
-	&& cd baypass_public-v3.1/sources/ \
-	&& make clean all FC=gfortran \
-	&& make clean \
-	&& chmod +x g_baypass \
-	&& mv /home/rstudio/software/baypass_public-v3.1/sources/g_baypass /usr/bin/g_baypass3
+# --- R-FORGE PACKAGES ---
+RUN install2.r --error --skipinstalled -r http://R-Forge.R-project.org \
+    gradientForest extendedForest
 
-# Clean up
-RUN apt clean all \
-&& rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && rm -rf /var/tmp/*
+# --- BIOCONDUCTOR ---
+# Note: 'LEA' replaces the old 'lfmm' package
+RUN R -e "BiocManager::install(c(\
+    'NOISeq','Repitools','Rsamtools','GenomicFeatures','rtracklayer', \
+    'qvalue', 'ggtree', 'LEA', \
+    'snpStats', 'GenomicRanges', 'GenomInfoDb', 'IRanges', \
+    'SNPRelate', 'gdsfmt', 'geneplotter', 'topGO', 'Rgraphviz' \
+    ))"
+
+# --- GITHUB PACKAGES ---
+# poolHelper and poolABC are usually installed from GitHub
+RUN R -e "remotes::install_github(c(\
+    'SFUStatgen/LDheatmap', \
+    'jiabowang/GAPIT3', \
+    'TBooker/PicMin', \
+    'landscape-genomics/rdadapt', \
+    'joao-mcarvalho/poolABC' \
+    ))"
+    # poolHelper is currently not on GitHub
+
+# --- ARCHIVED PACKAGES ---
+RUN R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/RCircos/RCircos_1.1.3.tar.gz', repos=NULL)" \
+    && R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/BITE/BITE_1.2.0008.tar.gz', repos=NULL)"
+
+	# 7. FINAL CLEANUP
+WORKDIR /home/rstudio
+RUN ldconfig
