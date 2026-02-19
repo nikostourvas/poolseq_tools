@@ -82,11 +82,11 @@ RUN apt update && apt -y install libboost-all-dev libgsl0-dev \
 	#&& ln -s /home/rstudio/software/Trimmomatic-0.39/trimmomatic-0.39.jar /usr/share/trimmomatic-0.39.jar
 
 # Install flash
-# RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
-# 	&& tar -xvf FLASH-1.2.11.tar.gz && rm FLASH-1.2.11.tar.gz \
-# 	&& cd FLASH-1.2.11 \
-# 	&& make \
-# 	&& ln -s /home/rstudio/software/FLASH-1.2.11/flash /usr/local/bin/flash
+RUN wget http://ccb.jhu.edu/software/FLASH/FLASH-1.2.11.tar.gz \
+	&& tar -xvf FLASH-1.2.11.tar.gz && rm FLASH-1.2.11.tar.gz \
+	&& cd FLASH-1.2.11 \
+	&& make \
+	&& ln -s /home/rstudio/software/FLASH-1.2.11/flash /usr/local/bin/flash
 	
 # Install bwa
 # No need to install this way as bwa latest version is quite old, and it is already packaged
@@ -169,7 +169,7 @@ RUN git clone https://github.com/genome/bam-readcount \
 	&& cd build \
 	&& cmake .. \
 	&& make
-RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/local/bin/bam-readcount
+RUN mv /home/rstudio/software/bam-readcount/build/bin/bam-readcount /usr/bin/bam-readcount
 
 # Install Bayescan
 RUN mkdir /home/rstudio/software/bayescan \
@@ -221,8 +221,8 @@ RUN cd bowtie2-2.5.2 \
 	&& cp bowtie2* /usr/local/bin/
 
 # Install Qualimap
-# RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip \
-# 	&& unzip qualimap_v2.3.zip
+RUN wget https://bitbucket.org/kokonech/qualimap/downloads/qualimap_v2.3.zip \
+	&& unzip qualimap_v2.3.zip
 
 RUN apt update && apt -y install libxml2-dev libcurl4-openssl-dev
 
@@ -243,8 +243,8 @@ RUN wget http://opengene.org/fastp/fastp.0.23.4 \
 	&& mv fastp /usr/local/bin/fastp
 
 # Install DeDup
-# RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8.jar \
-# 	&& mv /home/rstudio/software/DeDup-0.12.8.jar /usr/share/java/DeDup-0.12.8.jar
+RUN wget https://github.com/apeltzer/DeDup/releases/download/0.12.8/DeDup-0.12.8.jar \
+	&& mv /home/rstudio/software/DeDup-0.12.8.jar /usr/share/java/DeDup-0.12.8.jar
 
 # Install R packages from Bioconductor
 RUN R -e "BiocManager::install(c('qvalue', 'ggtree', 'LEA'))"
@@ -461,11 +461,15 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     biopython \
     bcbio-gff
 
-# Install intermine python package
-RUN pip3 install intermine
-
 # Install topGO R package
 RUN R -e "BiocManager::install(c('topGO', 'Rgraphviz'))"
+
+# Install R packages for genetic offset analyses
+RUN install2.r --error \
+	patchwork \
+	rnaturalearth \
+	terra \
+	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # Clean up
 RUN apt clean all \
