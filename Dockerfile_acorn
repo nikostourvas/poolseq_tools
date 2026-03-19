@@ -468,8 +468,15 @@ RUN R -e "BiocManager::install(c('topGO', 'Rgraphviz'))"
 RUN install2.r --error \
 	patchwork \
 	rnaturalearth \
+	rnaturalearthdata \
 	terra \
 	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+# Install R packages UpseR & ComplexHeatmap
+RUN R -e "options(repos = c(CRAN='https://cloud.r-project.org')); install.packages('UpSetR')" \
+	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+RUN R -e "options(repos = c('https://jokergoo.r-universe.dev', 'https://cloud.r-project.org')); install.packages('ComplexHeatmap')"
 
 # Clean up
 RUN apt clean all \
