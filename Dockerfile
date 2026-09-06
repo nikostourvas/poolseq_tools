@@ -1,5 +1,5 @@
 ####### Dockerfile #######
-FROM rocker/tidyverse:4.5.2
+FROM rocker/tidyverse:4.6.1
 LABEL maintainer="nikostourvas@gmail.com"
 
 # 1. SYSTEM CONFIGURATION
@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /usr/local/src
 
 # --- Samtools / Bcftools / Htslib ---
-ARG SAM_VER=1.23
+ARG SAM_VER=1.23.1
 RUN wget https://github.com/samtools/samtools/releases/download/${SAM_VER}/samtools-${SAM_VER}.tar.bz2 \
     && tar -xjf samtools-${SAM_VER}.tar.bz2 \
     && cd samtools-${SAM_VER} && ./configure && make && make install \
@@ -170,24 +170,34 @@ RUN wget http://cmpg.unibe.ch/software/fastsimcoal28/downloads/fsc28_linux64.zip
 	&& rm fsc28_linux64/fastsimcoal28.pdf
 
 # Install blast+
-RUN wget ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.17.0+-x64-linux.tar.gz \
-	&& tar -xvf ncbi-blast-2.17.0+-x64-linux.tar.gz
-RUN rm ncbi-blast-2.17.0+-x64-linux.tar.gz \
+RUN wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/2.17.0/ncbi-blast-2.17.0+-x64-linux.tar.gz
+RUN tar -xzf ncbi-blast-2.17.0+-x64-linux.tar.gz \
+	&& rm ncbi-blast-2.17.0+-x64-linux.tar.gz \
 	&& mv ncbi-blast-2.17.0+/bin/* /usr/local/bin/ \
 	&& rm -rf ncbi-blast-2.17.0+
 
+# Install ANGSD
+RUN wget https://github.com/ANGSD/angsd/releases/download/0.940/angsd0.940.tar.gz \
+        && tar xf angsd0.940.tar.gz \
+        && cd htslib; make \
+        && cd ..; cd angsd \
+        && make HTSSRC=../htslib
 
 # 6. R PACKAGES
+# The base image points CRAN at Posit Package Manager, which serves precompiled
+# binaries for this Ubuntu release -- do not override --repos, or every package
+# is rebuilt from source. Raise the download timeout well above R's 60s default
+# so large source tarballs survive a slow connection.
+ENV R_DEFAULT_INTERNET_TIMEOUT=600
+
 # --- CRAN PACKAGES ---
 RUN install2.r --error --skipinstalled -n 4 \
-    --repos https://cran.rstudio.com \
     # Utilities & Plotting
     viridis multcomp remedy factoextra scatterpie ggmap splitstackshape \
     gridGraphics gridExtra officer flextable eulerr car sjstats psych \
-    data.table ggrepel optparse
+    data.table ggrepel optparse circlize 
 
 RUN install2.r --error --skipinstalled -n 4 \
-    --repos https://cran.rstudio.com \
     # PopGen & Stats
     adegenet poppr hierfstat pegas ape phytools scales vegan \
     gtools reshape reshape2 gplots gsalib gdistance mclust \
@@ -197,11 +207,11 @@ RUN install2.r --error --skipinstalled -n 4 \
     # poolr
 
 RUN install2.r --error --skipinstalled -n 4 \
-    --repos https://cran.rstudio.com \
     # Spatial & Env
     raster maps sf corrplot FactoMineR ggpubr \
     plyr gdm foreach doParallel fields geosphere \
-    terra rnaturalearth geodata plotly manipulateWidget
+    terra rnaturalearth rnaturalearthdata geodata plotly manipulateWidget \
+    ggspatial gstat giscoR
 
 # --- R-FORGE PACKAGES ---
 RUN install2.r --error --skipinstalled -r http://R-Forge.R-project.org \
@@ -213,23 +223,32 @@ RUN R -e "BiocManager::install(c(\
     'NOISeq','Repitools','Rsamtools','GenomicFeatures','rtracklayer', \
     'qvalue', 'ggtree', 'LEA', \
     'snpStats', 'GenomicRanges', 'GenomInfoDb', 'IRanges', \
-    'SNPRelate', 'gdsfmt', 'geneplotter', 'topGO', 'Rgraphviz' \
+    'SNPRelate', 'gdsfmt', 'geneplotter', 'topGO', 'Rgraphviz', 'omicCircos' \
     ))"
 
 # --- GITHUB PACKAGES ---
 # poolHelper and poolABC are usually installed from GitHub
-RUN R -e "remotes::install_github(c(\
+RUN R -e "pak::pak(c(\
     'SFUStatgen/LDheatmap', \
     'jiabowang/GAPIT3', \
     'TBooker/PicMin', \
-    'landscape-genomics/rdadapt', \
     'joao-mcarvalho/poolABC' \
     ))"
     # poolHelper is currently not on GitHub
+    #'landscape-genomics/rdadapt', \
 
 # --- ARCHIVED PACKAGES ---
+# install.packages() only warns on failure, so verify afterwards to fail the build loudly
 RUN R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/RCircos/RCircos_1.1.3.tar.gz', repos=NULL)" \
-    && R -e "install.packages('https://cran.r-project.org/src/contrib/Archive/BITE/BITE_1.2.0008.tar.gz', repos=NULL)"
+    && R -q -e 'if (!requireNamespace("RCircos", quietly=TRUE)) quit(status=1)'
+
+# --- VENDORED PACKAGES ---
+# BITE (Milanesi et al. 2017, doi:10.1101/181610) was never released on CRAN,
+# so the source tarball is vendored in this repo. Depends on RCircos above.
+COPY vendor/BITEV2_0.1.0.tar.gz /usr/local/src/BITEV2_0.1.0.tar.gz
+RUN R CMD INSTALL /usr/local/src/BITEV2_0.1.0.tar.gz \
+    && R -q -e 'if (!requireNamespace("BITEV2", quietly=TRUE)) quit(status=1)' \
+    && rm /usr/local/src/BITEV2_0.1.0.tar.gz
 
 	# 7. FINAL CLEANUP
 WORKDIR /home/rstudio
