@@ -511,6 +511,25 @@ RUN R -q -e 'if(!require(devtools)) install.packages("devtools"); devtools::inst
 	&& R -q -e 'if (!requireNamespace("ComplexUpset", quietly=TRUE)) quit(status=1)' \
 	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
+# Install R packages for GO enrichment / semantic similarity, plotting, spatial & stats
+RUN install2.r --error --skipinstalled \
+	tidyterra \
+	geodata \
+	broom.mixed \
+	ggVennDiagram \
+	PNWColors \
+	Kendall \
+	ggtext \
+	writexl \
+	ggnewscale \
+	ggh4x \
+	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+# BiocManager::install() only warns on failure, so verify afterwards to fail the build loudly
+RUN R -q -e "BiocManager::install(c('rrvgo', 'GOSemSim', 'AnnotationHub', 'clusterProfiler', 'enrichplot'), update=FALSE, ask=FALSE)" \
+	&& R -q -e "for (p in c('rrvgo', 'GOSemSim', 'AnnotationHub', 'clusterProfiler', 'enrichplot')) if (!requireNamespace(p, quietly=TRUE)) quit(status=1)" \
+	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
 # Clean up
 RUN apt clean all \
 && rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && rm -rf /var/tmp/*

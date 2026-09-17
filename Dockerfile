@@ -195,7 +195,8 @@ RUN install2.r --error --skipinstalled -n 4 \
     # Utilities & Plotting
     viridis multcomp remedy factoextra scatterpie ggmap splitstackshape \
     gridGraphics gridExtra officer flextable eulerr car sjstats psych \
-    data.table ggrepel optparse circlize 
+    data.table ggrepel optparse circlize \
+    ggVennDiagram PNWColors ggtext writexl ggnewscale ggh4x
 
 RUN install2.r --error --skipinstalled -n 4 \
     # PopGen & Stats
@@ -203,7 +204,8 @@ RUN install2.r --error --skipinstalled -n 4 \
     gtools reshape reshape2 gplots gsalib gdistance mclust \
     mvtnorm geigen poolfstat pcadapt OptM vcfR conStruct \
     poolr \
-	usdm ClustOfVar lme4 lmerTest emmeans MuMIn 
+	usdm ClustOfVar lme4 lmerTest emmeans MuMIn \
+    broom.mixed Kendall
     # poolr
 
 RUN install2.r --error --skipinstalled -n 4 \
@@ -211,7 +213,7 @@ RUN install2.r --error --skipinstalled -n 4 \
     raster maps sf corrplot FactoMineR ggpubr \
     plyr gdm foreach doParallel fields geosphere \
     terra rnaturalearth rnaturalearthdata geodata plotly manipulateWidget \
-    ggspatial gstat giscoR
+    ggspatial gstat giscoR tidyterra
 
 # --- R-FORGE PACKAGES ---
 RUN install2.r --error --skipinstalled -r http://R-Forge.R-project.org \
@@ -223,7 +225,8 @@ RUN R -e "BiocManager::install(c(\
     'NOISeq','Repitools','Rsamtools','GenomicFeatures','rtracklayer', \
     'qvalue', 'ggtree', 'LEA', \
     'snpStats', 'GenomicRanges', 'GenomInfoDb', 'IRanges', \
-    'SNPRelate', 'gdsfmt', 'geneplotter', 'topGO', 'Rgraphviz', 'omicCircos' \
+    'SNPRelate', 'gdsfmt', 'geneplotter', 'topGO', 'Rgraphviz', 'omicCircos', \
+    'rrvgo', 'GOSemSim', 'AnnotationHub', 'clusterProfiler', 'enrichplot' \
     ))"
 
 # --- GITHUB PACKAGES ---
@@ -232,7 +235,8 @@ RUN R -e "pak::pak(c(\
     'SFUStatgen/LDheatmap', \
     'jiabowang/GAPIT3', \
     'TBooker/PicMin', \
-    'joao-mcarvalho/poolABC' \
+    'joao-mcarvalho/poolABC', \
+    'krassowski/complex-upset' \
     ))"
     # poolHelper is currently not on GitHub
     #'landscape-genomics/rdadapt', \
