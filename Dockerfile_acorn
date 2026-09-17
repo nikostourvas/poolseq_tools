@@ -506,6 +506,11 @@ RUN wget https://github.com/ANGSD/angsd/releases/download/0.940/angsd0.940.tar.g
 	&& cd ..; cd angsd \
 	&& make HTSSRC=../htslib
 
+# Install ComplexUpset (author-recommended install from GitHub)
+RUN R -q -e 'if(!require(devtools)) install.packages("devtools"); devtools::install_github("krassowski/complex-upset")' \
+	&& R -q -e 'if (!requireNamespace("ComplexUpset", quietly=TRUE)) quit(status=1)' \
+	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
 # Clean up
 RUN apt clean all \
 && rm -rf /var/lib/apt/lists/* && rm -rf /tmp/* && rm -rf /var/tmp/*
